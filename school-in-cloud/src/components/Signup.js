@@ -1,5 +1,34 @@
 import React, { useState } from 'react';
 import { CountryDropdown  } from 'react-country-region-selector';
+import * as yup from 'yup';
+import ErrorMessage from './ErrorMessage';
+
+const signupValidationSchema = yup.object().shape({
+  firstName: yup.string()
+    .required('Please enter your first name'),
+  lastName: yup.string()
+    .required('Please enter your last name'),
+  email: yup.string()
+    .email('Please enter a valid email')
+    .required('Please enter an email'),
+  password: yup.string()
+    .required('Please enter a password'),
+  role: yup.string()
+    .required('Please select a role'),
+  country: yup.string()
+    .when("role", {
+      is: 'volunteer',
+      then: yup.string().required("Please select a country")
+    }),
+  availability: yup.mixed()
+    .when("role", {
+      is: 'volunteer',
+      then: yup.mixed().test(
+        'has-availablity',
+        'Please select your availability',
+        (value) => Object.values(value).includes(true) 
+    )})
+});
 
 function Signup() {
   const [user, setUser] = useState({
@@ -18,6 +47,7 @@ function Signup() {
       '8': false
     } 
   });
+  const [formErrors, setFormErrors] = useState();
 
   function handleChange(event) {
     console.log('Change value: ', event.target.value);
@@ -34,12 +64,20 @@ function Signup() {
   function handleSubmit(event) {
     console.log('User: ', user);
     // Do the thing you want to do with the combo
+    signupValidationSchema.validate(user, {abortEarly: false})
+      .catch(err => {
+        setFormErrors(err.errors);
+        console.log('yup thing: ', err);
+      });
     event.preventDefault();
   }
 
   return (
     <div className="signup">
       <h2>Signup page</h2>
+      {formErrors && formErrors.map(err => (
+        <ErrorMessage key={err} message={err}/>
+      ))}
       <form onSubmit={handleSubmit}>
         <div>
           <label>
